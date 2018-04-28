@@ -1,4 +1,4 @@
-const twitterKeys = require('./keys');
+const keys = require('./keys');
 const request = require('request');
 const Twitter = require('twitter');
 const Spotify = require('node-spotify-api');
@@ -7,27 +7,14 @@ const fs = require("fs");
 let action = process.argv[2];
 let nodeArgs = process.argv;
 
+let tweetLog = '';
 
-switch (action) {
-    case 'my-tweets':
-        twitterThis();
-        break;
-    case 'spotify-this-song':
-        spotifyThis();
-        break;
-    case 'movie-this':
-        movieThis();
-        break;
-    case 'do-what-it-says':
-        readThis();
-        break;
-    default:
-        break;
-}
+
+switchFunction(action);
 
 // TWITTER //////////////////////////////////////////////////////////////////////
 function twitterThis() {
-    let client = new Twitter(twitterKeys);
+    let client = new Twitter(keys.twitterKeys);
     let count = 0;
     const params = { screen_name: 'au_ew89' };
 
@@ -41,8 +28,11 @@ function twitterThis() {
                 // console.log(count);
                 if (count < 20) {
                     console.log(tweet.text);
+                    tweetLog += ` ${tweet.text},`;
                 }
             });
+
+            log();
 
         }
     });
@@ -73,10 +63,7 @@ function spotifyThis() {
     }
 
 
-    let spotify = new Spotify({
-        id: 'd3b691929cf04f92a44cb221690df275',
-        secret: '6b3e1468353f48a9be6f84d0fc761ea2'
-    });
+    let spotify = new Spotify(keys.spotifyKeys);
 
     spotify.search({ type: 'track', query: song, limit: 1 }, function (err, data) {
         if (err) {
@@ -146,40 +133,76 @@ function movieThis() {
 function readThis() {
     fs.readFile("random.txt", "utf8", function (error, data) {
 
-        // If the code experiences any errors it will log the error to the console.
         if (error) {
             return console.log(error);
         }
 
-        // We will then print the contents of data
-        //console.log(data);
+        
 
-        // Then split it by commas (to make it more readable)
+        
         var dataArr = data.split(",");
 
-        // We will then re-display the content as an array for later use.
+        //console.log(dataArr);
         //console.log(dataArr);
         action = dataArr[0];
         nodeArgs = dataArr[1].split(' ');
+        nodeArgs.unshift('node', '', action);
         //console.log(nodeArgs);
 
-
-        switch (action) {
-            case 'my-tweets':
-                twitterThis();
-                break;
-            case 'spotify-this-song':
-                spotifyThis();
-                break;
-            case 'movie-this':
-                movieThis();
-                break;
-            case 'do-what-it-says':
-                readThis();
-                break;
-            default:
-                break;
-        }
+        switchFunction(action);
+        
 
     });
+}
+
+// LOG //////////////////////////////////////////////////////////////////////////
+function log() {
+    
+    let item = '';
+
+    if (nodeArgs.length > 3) {
+        for (let i = 3; i < nodeArgs.length; i++) {
+            item += ` ${nodeArgs[i]}`;
+        }
+    } else {
+        console.log(tweetLog);
+        item = tweetLog;
+    }
+
+    fs.appendFile('log.txt', `${action}, ${item}\n`, function (err) {
+
+        // If an error was experienced we say it.
+        if (err) {
+            console.log(err);
+        }
+
+        // If no error is experienced, we'll log the phrase "Content Added" to our node console.
+        // else {
+        //     console.log("Logged!");
+        // }
+
+    });
+}
+
+function switchFunction(action) {
+    switch (action) {
+        case 'my-tweets':
+            twitterThis();
+            // log();
+            break;
+        case 'spotify-this-song':
+            spotifyThis();
+            log();
+            break;
+        case 'movie-this':
+            movieThis();
+            log();
+            break;
+        case 'do-what-it-says':
+            readThis();
+            log();
+            break;
+        default:
+            break;
+    }
 }
